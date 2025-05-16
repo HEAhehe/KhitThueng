@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คิดถึงกันเปล่า?</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .login-container {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 35px;
+            width: 350px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #bb86fc;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #bb86fc;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.3);
+        }
+
+        input::placeholder {
+            color: #8e8e8e;
+        }
+
+        #login-button {
+            background-color: #bb86fc;
+            color: #121212;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        #login-button:hover {
+            background-color: #a075db;
+            transform: translateY(-2px);
+        }
+
+        #login-button:disabled {
+            background-color: #3e3e3e;
+            color: #8e8e8e;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #message {
+            margin-top: 20px;
+            color: #cf6679;
+            font-size: 15px;
+            display: none;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(207, 102, 121, 0.1);
+        }
+
+        #success-message {
+            margin-top: 20px;
+            color: #03dac6;
+            font-size: 15px;
+            display: none;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(3, 218, 198, 0.1);
+        }
+
+        .attempts {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #b0b0b0;
+        }
+        
+        .validation-message {
+            color: #cf6679;
+            font-size: 12px;
+            text-align: left;
+            margin-top: 5px;
+            display: none;
+        }
+
+        h4 {
+            color: #b0b0b0;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>ถามคำเดียว รักกันไหม?</h1>
+        <div class="input-group">
+            <input type="text" id="love" placeholder="ตอบ" required>
+            <div id="love-validation" class="validation-message">พิมพ์ก่อน ถึงจะกดปุ่มได้</div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="password" placeholder="แน่นะ? โกหกรึเปล่า" required>
+            <div id="password-validation" class="validation-message">ห้ามตอแหล</div>
+        </div>
+        <h4>ถ้าสักแต่พิมพ์มา จะไม่ได้จุ๊บๆ</h4>
+        <button id="login-button" disabled>ส่งคำตอบ</button>
+        <div id="message">ว้าย! ไม่โดน</div>
+        <div id="success-message">รักนะ ♥</div>
+        <div class="attempts">จำนวนความพยายามที่สูญเปล่า: <span id="attempt-count">0</span></div>
+    </div>
+
+    <script>
+        const loginButton = document.getElementById('login-button');
+        const message = document.getElementById('message');
+        const successMessage = document.getElementById('success-message');
+        const attemptCount = document.getElementById('attempt-count');
+        const loveInput = document.getElementById('love');
+        const passwordInput = document.getElementById('password');
+        const loveValidation = document.getElementById('love-validation');
+        const passwordValidation = document.getElementById('password-validation');
+        
+        let attempts = 0;
+        let inputsFilled = false;
+        let buttonCaught = false;
+
+        let originalButtonWidth;
+        let originalPosition = {
+            position: 'relative',
+            left: 'auto',
+            top: 'auto',
+            width: '100%'
+        };
+        
+        // บันทึกความกว้างเริ่มต้นของปุ่ม
+        function saveOriginalWidth() {
+            if (!originalButtonWidth) {
+                originalButtonWidth = loginButton.offsetWidth;
+            }
+        }
+        
+        // เรียกใช้งานเมื่อหน้าเว็บโหลดเสร็จ
+        window.addEventListener('load', saveOriginalWidth);
+        
+        // ตรวจสอบสถานะการกรอกข้อมูล
+        function checkInputs() {
+            const loveValue = loveInput.value.trim();
+            const passwordValue = passwordInput.value.trim();
+            
+            // บันทึกความกว้างเริ่มต้นของปุ่ม
+            saveOriginalWidth();
+            
+            // แสดงข้อความตรวจสอบความถูกต้อง
+            loveValidation.style.display = loveValue === '' ? 'block' : 'none';
+            passwordValidation.style.display = passwordValue === '' ? 'block' : 'none';
+            
+            // อัปเดตสถานะของปุ่ม
+            inputsFilled = loveValue !== '' && passwordValue !== '';
+            loginButton.disabled = !inputsFilled;
+            
+            // เมื่อกรอกข้อมูลครบทั้งสองช่อง ให้ลบ event listener เดิมและเพิ่ม event listener สำหรับการหนีเมาส์
+            if (inputsFilled) {
+                loginButton.style.position = 'relative';
+            }
+        }
+
+        // เพิ่ม event listener สำหรับการตรวจสอบข้อมูลที่กรอก
+        loveInput.addEventListener('input', checkInputs);
+        passwordInput.addEventListener('input', checkInputs);
+        
+        // ตรวจจับว่าเมาส์เข้าใกล้ปุ่มหรือไม่
+        loginButton.addEventListener('mouseover', function(e) {
+            // ถ้ากรอกข้อมูลแล้วและยังไม่ได้กดโดน ให้ปุ่มหนีเมาส์
+            if (inputsFilled && !buttonCaught) {
+                // สุ่มตำแหน่งใหม่ให้ปุ่มทั่วทั้งหน้าจอ
+                const buttonRect = loginButton.getBoundingClientRect();
+                
+                // คำนวณตำแหน่งใหม่ที่อยู่ภายในหน้าจอทั้งหมด
+                const maxX = window.innerWidth - buttonRect.width;
+                const maxY = window.innerHeight - buttonRect.height;
+                
+                const randomX = Math.random() * maxX - loginButton.getBoundingClientRect().left;
+                const randomY = Math.random() * maxY - loginButton.getBoundingClientRect().top;
+                
+                // เคลื่อนปุ่มไปยังตำแหน่งใหม่
+                loginButton.style.position = 'fixed';
+                loginButton.style.width = originalButtonWidth + 'px';
+                loginButton.style.left = buttonRect.left + randomX + 'px';
+                loginButton.style.top = buttonRect.top + randomY + 'px';
+                
+                // แสดงข้อความและเพิ่มจำนวนครั้งที่พยายาม
+                message.style.display = 'block';
+                successMessage.style.display = 'none';
+                attempts++;
+                attemptCount.textContent = attempts;
+                
+                // แสดงข้อความเสียดสีเมื่อพยายามหลายครั้ง
+                if (attempts >= 5) {
+                    message.textContent = "กดอีกสิ กดอีก";
+                }
+                if (attempts >= 10) {
+                    message.textContent = "อาจจะต้องเร็วกว่านี้ อย่าพึ่งท้อไอหนุ่ม";
+                }
+                if (attempts >= 15) {
+                    message.textContent = "ถ้ากดโดนเดี๋ยวให้จูบเลย";
+                }
+                if (attempts > 30) {
+                    message.textContent = "ยังไม่โดนอีกหรอ สงสัยจะอดแหง๋";
+                }
+            }
+        });
+
+        // รีเซ็ตตำแหน่งเมื่อเมาส์ออกจากปุ่ม
+        loginButton.addEventListener('mouseout', function() {
+            if (inputsFilled && !buttonCaught) {
+                setTimeout(() => {
+                    loginButton.style.position = 'relative';
+                    loginButton.style.left = 'auto';
+                    loginButton.style.top = 'auto';
+                    loginButton.style.width = '100%';
+                }, 500);
+            }
+        });
+        
+        // สำหรับการคลิก
+        loginButton.addEventListener('click', function() {
+            if (inputsFilled) {
+                if (!buttonCaught) {
+                    // เมื่อกดโดนครั้งแรก
+                    buttonCaught = true;
+                    
+                    // กำหนดให้ปุ่มกลับมาที่เดิม
+                    loginButton.style.position = 'relative';
+                    loginButton.style.left = 'auto';
+                    loginButton.style.top = 'auto';
+                    loginButton.style.width = '100%';
+                    
+                    message.style.display = 'none';
+                    successMessage.textContent = "ให้กดไปงั้นแหละ ไม่มีไรหรอก แป้งเบื่อ รักนะหนุ่ม";
+                    successMessage.style.display = 'block';
+                } else {
+                    // เมื่อกดครั้งที่สอง
+                    successMessage.textContent = "เอ้า กดอีกทำไม ไม่มีไรแล้ว";
+                }
+            }
+        });
+        
+        // เริ่มต้นตรวจสอบข้อมูลและอัปเดตสถานะปุ่ม
+        checkInputs();
+    </script>
+</body>
+</html>
