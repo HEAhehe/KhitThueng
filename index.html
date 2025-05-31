@@ -4,128 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>คิดถึงกันเปล่า?</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #121212;
-            color: #ffffff;
-        }
-
-        .login-container {
-            background-color: #1e1e1e;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            padding: 35px;
-            width: 350px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        h1 {
-            color: #bb86fc;
-            margin-bottom: 25px;
-            font-weight: 500;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #333333;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            background-color: #2a2a2a;
-            color: #ffffff;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            border-color: #bb86fc;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.3);
-        }
-
-        input::placeholder {
-            color: #8e8e8e;
-        }
-
-        #login-button {
-            background-color: #bb86fc;
-            color: #121212;
-            border: none;
-            border-radius: 8px;
-            padding: 14px;
-            width: 100%;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-
-        #login-button:hover {
-            background-color: #a075db;
-            transform: translateY(-2px);
-        }
-
-        #login-button:disabled {
-            background-color: #3e3e3e;
-            color: #8e8e8e;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        #message {
-            margin-top: 20px;
-            color: #cf6679;
-            font-size: 15px;
-            display: none;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: rgba(207, 102, 121, 0.1);
-        }
-
-        #success-message {
-            margin-top: 20px;
-            color: #03dac6;
-            font-size: 15px;
-            display: none;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: rgba(3, 218, 198, 0.1);
-        }
-
-        .attempts {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #b0b0b0;
-        }
-        
-        .validation-message {
-            color: #cf6679;
-            font-size: 12px;
-            text-align: left;
-            margin-top: 5px;
-            display: none;
-        }
-
-        h4 {
-            color: #b0b0b0;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <!-- เพิ่ม Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
     <div class="login-container">
@@ -143,9 +25,57 @@
         <div id="message">ว้าย! ไม่โดน</div>
         <div id="success-message">รักนะ ♥</div>
         <div class="attempts">จำนวนความพยายามที่สูญเปล่า: <span id="attempt-count">0</span></div>
+        
+        <!-- ส่วนของแอดมิน (เริ่มต้นจะถูกซ่อนไว้) -->
+        <div id="admin-panel" class="admin-panel" style="display: none;">
+            <div class="admin-header">
+                <h3>ข้อมูลคำตอบทั้งหมด (สำหรับแอดมินเท่านั้น)</h3>
+                <button id="logout-button" class="logout-button">ออกจากระบบ</button>
+            </div>
+            <div class="answers-container">
+                <ul id="answers-list"></ul>
+            </div>
+        </div>
+        
+        <!-- ลิงค์ไปยังหน้าแอดมิน -->
+        <div class="admin-link">
+            <a href="#" id="admin-login-link">สำหรับแอดมิน</a>
+        </div>
+        
+        <!-- Modal สำหรับล็อกอินแอดมิน -->
+        <div id="admin-login-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>เข้าสู่ระบบแอดมิน</h2>
+                <div class="input-group">
+                    <input type="password" id="admin-password" placeholder="รหัสผ่านแอดมิน">
+                </div>
+                <button id="admin-login-button">เข้าสู่ระบบ</button>
+                <div id="admin-error" class="error-message"></div>
+            </div>
+        </div>
     </div>
 
     <script>
+        // คอนฟิกของ Firebase - คุณต้องแทนที่ด้วยค่าคอนฟิกจริงจาก Firebase Console
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // ตั้งค่า Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // รหัสผ่านแอดมิน
+        const ADMIN_PASSWORD = "admin1234"; // คุณควรเปลี่ยนเป็นรหัสผ่านที่ซับซ้อนกว่านี้ในระบบจริง
+        
+        // อ้างอิงอีลิเมนต์ DOM
         const loginButton = document.getElementById('login-button');
         const message = document.getElementById('message');
         const successMessage = document.getElementById('success-message');
@@ -154,10 +84,20 @@
         const passwordInput = document.getElementById('password');
         const loveValidation = document.getElementById('love-validation');
         const passwordValidation = document.getElementById('password-validation');
+        const answersList = document.getElementById('answers-list');
+        const adminPanel = document.getElementById('admin-panel');
+        const adminLoginLink = document.getElementById('admin-login-link');
+        const adminLoginModal = document.getElementById('admin-login-modal');
+        const adminPassword = document.getElementById('admin-password');
+        const adminLoginButton = document.getElementById('admin-login-button');
+        const adminError = document.getElementById('admin-error');
+        const logoutButton = document.getElementById('logout-button');
+        const closeModal = document.querySelector('.close');
         
         let attempts = 0;
         let inputsFilled = false;
         let buttonCaught = false;
+        let isAdmin = false;
 
         let originalButtonWidth;
         let originalPosition = {
@@ -167,6 +107,162 @@
             width: '100%'
         };
         
+        // บันทึกคำตอบลงใน Firebase
+        function saveAnswer(loveValue, passwordValue) {
+            // สร้าง timestamp เป็น key หลักเพื่อให้เรียงลำดับตามเวลาได้ง่าย
+            const timestamp = Date.now();
+            
+            // ข้อมูลที่จะบันทึก
+            const answerData = {
+                love: loveValue,
+                password: passwordValue,
+                timestamp: timestamp,
+                date: new Date().toLocaleString('th-TH'),
+                browser: getBrowserInfo(), // เก็บข้อมูลเบราว์เซอร์
+                deviceInfo: getDeviceInfo() // เก็บข้อมูลอุปกรณ์
+            };
+            
+            // บันทึกข้อมูลใน Firebase โดยใช้ timestamp เป็น key
+            database.ref('answers/' + timestamp).set(answerData)
+                .then(() => {
+                    console.log("บันทึกข้อมูลสำเร็จ");
+                })
+                .catch((error) => {
+                    console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล: ", error);
+                });
+        }
+        
+        // ฟังก์ชันรับข้อมูลเบราว์เซอร์
+        function getBrowserInfo() {
+            const userAgent = navigator.userAgent;
+            let browserInfo = "Unknown";
+            
+            if (userAgent.match(/chrome|chromium|crios/i)) {
+                browserInfo = "Chrome";
+            } else if (userAgent.match(/firefox|fxios/i)) {
+                browserInfo = "Firefox";
+            } else if (userAgent.match(/safari/i)) {
+                browserInfo = "Safari";
+            } else if (userAgent.match(/opr\//i)) {
+                browserInfo = "Opera";
+            } else if (userAgent.match(/edg/i)) {
+                browserInfo = "Edge";
+            } else if (userAgent.match(/trident/i)) {
+                browserInfo = "Internet Explorer";
+            }
+            
+            return browserInfo;
+        }
+        
+        // ฟังก์ชันรับข้อมูลอุปกรณ์
+        function getDeviceInfo() {
+            let deviceType = "Unknown";
+            
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                deviceType = "Mobile";
+                
+                if (/iPad|iPod/i.test(navigator.userAgent)) {
+                    deviceType = "Tablet";
+                }
+            } else {
+                deviceType = "Desktop";
+            }
+            
+            return {
+                type: deviceType,
+                os: getOperatingSystem(),
+                screenSize: `${window.screen.width}x${window.screen.height}`
+            };
+        }
+        
+        // ฟังก์ชันรับข้อมูลระบบปฏิบัติการ
+        function getOperatingSystem() {
+            const userAgent = navigator.userAgent;
+            let os = "Unknown";
+            
+            if (userAgent.indexOf("Win") != -1) os = "Windows";
+            if (userAgent.indexOf("Mac") != -1) os = "MacOS";
+            if (userAgent.indexOf("X11") != -1) os = "UNIX";
+            if (userAgent.indexOf("Linux") != -1) os = "Linux";
+            if (userAgent.indexOf("Android") != -1) os = "Android";
+            if (userAgent.indexOf("iPhone") != -1 || userAgent.indexOf("iPad") != -1) os = "iOS";
+            
+            return os;
+        }
+        
+        // โหลดข้อมูลคำตอบจาก Firebase (เฉพาะแอดมิน)
+        function loadAnswers() {
+            if (!isAdmin) return;
+            
+            database.ref('answers').once('value')
+                .then((snapshot) => {
+                    answersList.innerHTML = '';
+                    
+                    if (!snapshot.exists()) {
+                        answersList.innerHTML = '<li>ยังไม่มีคำตอบบันทึกไว้</li>';
+                        return;
+                    }
+                    
+                    // แปลงข้อมูลให้อยู่ในรูปแบบอาร์เรย์และเรียงตามเวลา
+                    const answers = [];
+                    snapshot.forEach((childSnapshot) => {
+                        const answer = childSnapshot.val();
+                        answer.key = childSnapshot.key;
+                        answers.push(answer);
+                    });
+                    
+                    // เรียงลำดับตามเวลา (ล่าสุดอยู่บนสุด)
+                    answers.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // แสดงข้อมูล
+                    answers.forEach((answer, index) => {
+                        const li = document.createElement('li');
+                        const deviceInfo = answer.deviceInfo || { type: "ไม่ทราบ", os: "ไม่ทราบ", screenSize: "ไม่ทราบ" };
+                        
+                        li.innerHTML = `
+                            <div class="answer-item">
+                                <strong>${index + 1}.</strong> คำตอบที่ 1: ${answer.love} | คำตอบที่ 2: ${answer.password}
+                                <div class="answer-details">
+                                    <span>เบราว์เซอร์: ${answer.browser || "ไม่ทราบ"}</span> | 
+                                    <span>อุปกรณ์: ${deviceInfo.type} (${deviceInfo.os})</span>
+                                </div>
+                                <div class="answer-date">เวลา: ${answer.date}</div>
+                                <button class="delete-button" data-key="${answer.key}">ลบ</button>
+                            </div>
+                        `;
+                        answersList.appendChild(li);
+                    });
+                    
+                    // เพิ่ม event listener สำหรับปุ่มลบ
+                    document.querySelectorAll('.delete-button').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const key = this.getAttribute('data-key');
+                            deleteAnswer(key);
+                        });
+                    });
+                })
+                .catch((error) => {
+                    console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล: ", error);
+                    answersList.innerHTML = '<li>เกิดข้อผิดพลาดในการโหลดข้อมูล</li>';
+                });
+        }
+        
+        // ลบคำตอบออกจาก Firebase
+        function deleteAnswer(key) {
+            if (!isAdmin) return;
+            
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) {
+                database.ref('answers/' + key).remove()
+                    .then(() => {
+                        console.log("ลบข้อมูลสำเร็จ");
+                        loadAnswers(); // โหลดข้อมูลใหม่
+                    })
+                    .catch((error) => {
+                        console.error("เกิดข้อผิดพลาดในการลบข้อมูล: ", error);
+                    });
+            }
+        }
+        
         // บันทึกความกว้างเริ่มต้นของปุ่ม
         function saveOriginalWidth() {
             if (!originalButtonWidth) {
@@ -174,8 +270,55 @@
             }
         }
         
+        // ตรวจสอบสถานะการเข้าสู่ระบบแอดมิน
+        function checkAdminStatus() {
+            const adminStatus = localStorage.getItem('isAdmin');
+            isAdmin = adminStatus === 'true';
+            
+            if (isAdmin) {
+                adminPanel.style.display = 'block';
+                loadAnswers();
+            } else {
+                adminPanel.style.display = 'none';
+            }
+        }
+        
+        // เข้าสู่ระบบแอดมิน
+        function adminLogin() {
+            const password = adminPassword.value;
+            
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                localStorage.setItem('isAdmin', 'true');
+                adminLoginModal.style.display = 'none';
+                adminPanel.style.display = 'block';
+                adminPassword.value = '';
+                adminError.textContent = '';
+                loadAnswers();
+            } else {
+                adminError.textContent = 'รหัสผ่านไม่ถูกต้อง';
+            }
+        }
+        
+        // ออกจากระบบแอดมิน
+        function adminLogout() {
+            isAdmin = false;
+            localStorage.removeItem('isAdmin');
+            adminPanel.style.display = 'none';
+        }
+        
         // เรียกใช้งานเมื่อหน้าเว็บโหลดเสร็จ
-        window.addEventListener('load', saveOriginalWidth);
+        window.addEventListener('load', () => {
+            saveOriginalWidth();
+            checkAdminStatus();
+            
+            // ดึงค่าจำนวนความพยายามจาก localStorage (ถ้ามี)
+            const savedAttempts = localStorage.getItem('attempts');
+            if (savedAttempts) {
+                attempts = parseInt(savedAttempts);
+                attemptCount.textContent = attempts;
+            }
+        });
         
         // ตรวจสอบสถานะการกรอกข้อมูล
         function checkInputs() {
@@ -229,6 +372,9 @@
                 attempts++;
                 attemptCount.textContent = attempts;
                 
+                // บันทึกจำนวนความพยายามลงใน localStorage
+                localStorage.setItem('attempts', attempts);
+                
                 // แสดงข้อความเสียดสีเมื่อพยายามหลายครั้ง
                 if (attempts >= 5) {
                     message.textContent = "กดอีกสิ กดอีก";
@@ -257,9 +403,15 @@
             }
         });
         
-        // สำหรับการคลิก
+        // สำหรับการคลิกปุ่มส่งคำตอบ
         loginButton.addEventListener('click', function() {
+            const loveValue = loveInput.value.trim();
+            const passwordValue = passwordInput.value.trim();
+            
             if (inputsFilled) {
+                // บันทึกคำตอบลงใน Firebase
+                saveAnswer(loveValue, passwordValue);
+                
                 if (!buttonCaught) {
                     // เมื่อกดโดนครั้งแรก
                     buttonCaught = true;
@@ -273,12 +425,51 @@
                     message.style.display = 'none';
                     successMessage.textContent = "ให้กดไปงั้นแหละ ไม่มีไรหรอก แป้งเบื่อ รักนะหนุ่ม";
                     successMessage.style.display = 'block';
+                    
+                    // ล้างค่าในฟอร์ม
+                    loveInput.value = '';
+                    passwordInput.value = '';
+                    checkInputs();
+                    
+                    // รีเซ็ตสถานะสำหรับการกรอกข้อมูลใหม่
+                    buttonCaught = false;
                 } else {
                     // เมื่อกดครั้งที่สอง
                     successMessage.textContent = "เอ้า กดอีกทำไม ไม่มีไรแล้ว";
                 }
             }
         });
+        
+        // แสดง Modal สำหรับล็อกอินแอดมิน
+        adminLoginLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            adminLoginModal.style.display = 'block';
+        });
+        
+        // ปิด Modal
+        closeModal.addEventListener('click', function() {
+            adminLoginModal.style.display = 'none';
+        });
+        
+        // เมื่อคลิกที่พื้นหลัง Modal
+        window.addEventListener('click', function(e) {
+            if (e.target == adminLoginModal) {
+                adminLoginModal.style.display = 'none';
+            }
+        });
+        
+        // เมื่อกดปุ่มล็อกอินแอดมิน
+        adminLoginButton.addEventListener('click', adminLogin);
+        
+        // กดปุ่ม Enter ใน input รหัสผ่านแอดมิน
+        adminPassword.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                adminLogin();
+            }
+        });
+        
+        // เมื่อกดปุ่มออกจากระบบแอดมิน
+        logoutButton.addEventListener('click', adminLogout);
         
         // เริ่มต้นตรวจสอบข้อมูลและอัปเดตสถานะปุ่ม
         checkInputs();

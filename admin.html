@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการข้อมูล - แอดมิน</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- เพิ่ม Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>ระบบจัดการข้อมูล</h1>
+            <div class="admin-controls">
+                <button id="logout-button" class="logout-button">ออกจากระบบ</button>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>จำนวนคำตอบทั้งหมด</h3>
+                <div class="stat-value" id="total-answers">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>ผู้ตอบล่าสุด</h3>
+                <div class="stat-value" id="latest-answer">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>อุปกรณ์ที่ใช้มากที่สุด</h3>
+                <div class="stat-value" id="popular-device">-</div>
+            </div>
+        </div>
+
+        <div class="answers-section">
+            <div class="answers-header">
+                <h2>รายการคำตอบทั้งหมด</h2>
+                <div class="filter-controls">
+                    <input type="text" id="search-input" placeholder="ค้นหาคำตอบ...">
+                    <button id="clear-search">ล้าง</button>
+                    <select id="sort-select">
+                        <option value="newest">ล่าสุด</option>
+                        <option value="oldest">เก่าสุด</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="answers-table-container">
+                <table class="answers-table">
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>คำตอบที่ 1</th>
+                            <th>คำตอบที่ 2</th>
+                            <th>อุปกรณ์</th>
+                            <th>วันเวลา</th>
+                            <th>การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="answers-list">
+                        <tr>
+                            <td colspan="6" class="loading-text">กำลังโหลดข้อมูล...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal สำหรับดูรายละเอียด -->
+    <div id="details-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close">&times;</span>
+            <h2>รายละเอียดคำตอบ</h2>
+            <div id="answer-details">
+                <!-- รายละเอียดจะถูกเพิ่มทีหลังด้วย JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal สำหรับยืนยันการลบ -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content modal-small">
+            <h2>ยืนยันการลบ</h2>
+            <p>คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?</p>
+            <div class="modal-buttons">
+                <button id="confirm-delete" class="danger-button">ลบ</button>
+                <button id="cancel-delete" class="cancel-button">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // คอนฟิกของ Firebase - คุณต้องแทนที่ด้วยค่าคอนฟิกจริงของคุณ
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // ตรวจสอบการเข้าสู่ระบบก่อนเริ่มทำงาน
+        document.addEventListener('DOMContentLoaded', function() {
+            // ตรวจสอบสถานะการล็อกอิน
+            const isLoggedIn = localStorage.getItem('isAdmin') === 'true';
+            
+            if (!isLoggedIn) {
+                // ถ้ายังไม่ได้ล็อกอิน ให้กลับไปยังหน้า login
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // ตั้งค่า Firebase และโหลดข้อมูล
+            initializeFirebase();
+        });
+        
+        // ฟังก์ชันตั้งค่า Firebase และโหลดข้อมูล
+        function initializeFirebase() {
+            // ตั้งค่า Firebase
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            
+            const database = firebase.database();
+            
+            // โหลดข้อมูลคำตอบทั้งหมด
+            loadAnswers();
+            
+            // โหลดสถิติต่างๆ
+            loadStats();
+            
+            // เพิ่ม event listeners สำหรับตัวกรองและการเรียงลำดับ
+            document.getElementById('search-input').addEventListener('input', filterAnswers);
+            document.getElementById('clear-search').addEventListener('click', clearSearch);
+            document.getElementById('sort-select').addEventListener('change', sortAnswers);
+            
+            // เพิ่ม event listener สำหรับปุ่มออกจากระบบ
+            document.getElementById('logout-button').addEventListener('click', function() {
+                localStorage.removeItem('isAdmin');
+                window.location.href = 'login.html';
+            });
+            
+            // เพิ่ม event listeners สำหรับ modal
+            document.querySelectorAll('.modal .close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    closeModals();
+                });
+            });
+            
+            document.getElementById('cancel-delete').addEventListener('click', function() {
+                closeModals();
+            });
+            
+            // ปิด modal เมื่อคลิกที่พื้นหลัง
+            window.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    closeModals();
+                }
+            });
+        }
+        
+        // ปิด modal ทั้งหมด
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        // ตัวแปรสำหรับเก็บข้อมูลคำตอบทั้งหมด
+        let allAnswers = [];
+        
+        // โหลดข้อมูลคำตอบทั้งหมด
+        function loadAnswers() {
+            const database = firebase.database();
+            database.ref('answers').once('value')
+                .then((snapshot) => {
+                    const answersList = document.getElementById('answers-list');
+                    
+                    if (!snapshot.exists()) {
+                        answersList.innerHTML = '<tr><td colspan="6" class="no-data">ยังไม่มีข้อมูลคำตอบ</td></tr>';
+                        return;
+                    }
+                    
+                    // แปลงข้อมูลให้อยู่ในรูปแบบอาร์เรย์
+                    allAnswers = [];
+                    snapshot.forEach((childSnapshot) => {
+                        const answer = childSnapshot.val();
+                        answer.key = childSnapshot.key;
+                        allAnswers.push(answer);
+                    });
+                    
+                    // เรียงลำดับตามเวลา (ล่าสุดอยู่บนสุด)
+                    allAnswers.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // แสดงข้อมูล
+                    renderAnswers(allAnswers);
+                })
+                .catch((error) => {
+                    console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล: ", error);
+                    document.getElementById('answers-list').innerHTML = 
+                        '<tr><td colspan="6" class="error-text">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+                });
+        }
+        
+        // แสดงข้อมูลคำตอบในตาราง
+        function renderAnswers(answers) {
+            const answersList = document.getElementById('answers-list');
+            answersList.innerHTML = '';
+            
+            if (answers.length === 0) {
+                answersList.innerHTML = '<tr><td colspan="6" class="no-data">ไม่พบข้อมูล</td></tr>';
+                return;
+            }
+            
+            answers.forEach((answer, index) => {
+                const deviceInfo = answer.deviceInfo || { type: "ไม่ทราบ", os: "ไม่ทราบ" };
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${answer.love || "-"}</td>
+                    <td>${answer.password || "-"}</td>
+                    <td>${deviceInfo.type} (${deviceInfo.os})</td>
+                    <td>${answer.date || "-"}</td>
+                    <td class="actions">
+                        <button class="view-button" data-key="${answer.key}">ดู</button>
+                        <button class="delete-button" data-key="${answer.key}">ลบ</button>
+                    </td>
+                `;
+                answersList.appendChild(row);
+            });
+            
+            // เพิ่ม event listeners สำหรับปุ่มดูและลบ
+            document.querySelectorAll('.view-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const key = this.getAttribute('data-key');
+                    showAnswerDetails(key);
+                });
+            });
+            
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const key = this.getAttribute('data-key');
+                    showDeleteConfirmation(key);
+                });
+            });
+        }
+        
+        // แสดงรายละเอียดคำตอบ
+        function showAnswerDetails(key) {
+            const answer = allAnswers.find(a => a.key === key);
+            if (!answer) return;
+            
+            const deviceInfo = answer.deviceInfo || { type: "ไม่ทราบ", os: "ไม่ทราบ", screenSize: "ไม่ทราบ" };
+            
+            const detailsContent = document.getElementById('answer-details');
+            detailsContent.innerHTML = `
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">คำตอบที่ 1:</div>
+                        <div class="detail-value">${answer.love || "-"}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">คำตอบที่ 2:</div>
+                        <div class="detail-value">${answer.password || "-"}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">วันเวลา:</div>
+                        <div class="detail-value">${answer.date || "-"}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">เบราว์เซอร์:</div>
+                        <div class="detail-value">${answer.browser || "ไม่ทราบ"}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">ประเภทอุปกรณ์:</div>
+                        <div class="detail-value">${deviceInfo.type}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">ระบบปฏิบัติการ:</div>
+                        <div class="detail-value">${deviceInfo.os}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">ขนาดหน้าจอ:</div>
+                        <div class="detail-value">${deviceInfo.screenSize}</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('details-modal').style.display = 'block';
+        }
+        
+        // แสดงหน้าต่างยืนยันการลบ
+        function showDeleteConfirmation(key) {
+            document.getElementById('confirm-modal').style.display = 'block';
+            
+            // เพิ่ม event listener สำหรับปุ่มยืนยันการลบ
+            const confirmDeleteButton = document.getElementById('confirm-delete');
+            confirmDeleteButton.onclick = function() {
+                deleteAnswer(key);
+            };
+        }
+        
+        // ฟังก์ชันลบคำตอบ
+        function deleteAnswer(key) {
+            const database = firebase.database();
+            database.ref('answers/' + key).remove()
+                .then(() => {
+                    // ลบข้อมูลสำเร็จ
+                    closeModals();
+                    // โหลดข้อมูลใหม่
+                    loadAnswers();
+                    loadStats();
+                })
+                .catch((error) => {
+                    console.error("เกิดข้อผิดพลาดในการลบข้อมูล: ", error);
+                    alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+                });
+        }
+        
+        // ฟังก์ชันกรองข้อมูล
+        function filterAnswers() {
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            
+            if (!searchText) {
+                renderAnswers(allAnswers);
+                return;
+            }
+            
+            const filteredAnswers = allAnswers.filter(answer => {
+                return (
+                    (answer.love && answer.love.toLowerCase().includes(searchText)) ||
+                    (answer.password && answer.password.toLowerCase().includes(searchText)) ||
+                    (answer.date && answer.date.toLowerCase().includes(searchText)) ||
+                    (answer.browser && answer.browser.toLowerCase().includes(searchText)) ||
+                    (answer.deviceInfo && answer.deviceInfo.type && answer.deviceInfo.type.toLowerCase().includes(searchText)) ||
+                    (answer.deviceInfo && answer.deviceInfo.os && answer.deviceInfo.os.toLowerCase().includes(searchText))
+                );
+            });
+            
+            renderAnswers(filteredAnswers);
+        }
+        
+        // ล้างการค้นหา
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            renderAnswers(allAnswers);
+        }
+        
+        // เรียงลำดับข้อมูล
+        function sortAnswers() {
+            const sortValue = document.getElementById('sort-select').value;
+            
+            if (sortValue === 'newest') {
+                allAnswers.sort((a, b) => b.timestamp - a.timestamp);
+            } else if (sortValue === 'oldest') {
+                allAnswers.sort((a, b) => a.timestamp - b.timestamp);
+            }
+            
+            renderAnswers(allAnswers);
+        }
+        
+        // โหลดข้อมูลสถิติ
+        function loadStats() {
+            if (allAnswers.length === 0) return;
+            
+            // จำนวนคำตอบทั้งหมด
+            document.getElementById('total-answers').textContent = allAnswers.length;
+            
+            // คำตอบล่าสุด
+            const latestAnswer = allAnswers[0]; // เพราะเรียงลำดับแล้ว
+            document.getElementById('latest-answer').textContent = latestAnswer.date || "-";
+            
+            // นับจำนวนอุปกรณ์แต่ละประเภท
+            const deviceCount = {};
+            allAnswers.forEach(answer => {
+                if (answer.deviceInfo && answer.deviceInfo.type) {
+                    const deviceType = answer.deviceInfo.type;
+                    deviceCount[deviceType] = (deviceCount[deviceType] || 0) + 1;
+                }
+            });
+            
+            // หาอุปกรณ์ที่ใช้มากที่สุด
+            let maxCount = 0;
+            let popularDevice = "ไม่ทราบ";
+            
+            for (const device in deviceCount) {
+                if (deviceCount[device] > maxCount) {
+                    maxCount = deviceCount[device];
+                    popularDevice = device;
+                }
+            }
+            
+            document.getElementById('popular-device').textContent = `${popularDevice} (${maxCount})`;
+        }
+    </script>
+</body>
+</html>

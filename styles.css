@@ -1,0 +1,317 @@
+/* styles.css - ไฟล์รวม CSS สำหรับทั้งหน้า login และหน้า index */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #121212;
+    color: #ffffff;
+    }
+    .login-container {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    padding: 35px;
+    width: 350px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    }
+    h1 {
+    color: #bb86fc;
+    margin-bottom: 25px;
+    font-weight: 500;
+    }
+    .input-group {
+    margin-bottom: 20px;
+    }
+    input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    transition: all 0.3s ease;
+    }
+    input:focus {
+    border-color: #bb86fc;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.3);
+    }
+    input::placeholder {
+    color: #8e8e8e;
+    }
+    #login-button {
+    background-color: #bb86fc;
+    color: #121212;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    }
+    #login-button:hover {
+    background-color: #a075db;
+    transform: translateY(-2px);
+    }
+    #login-button:disabled {
+    background-color: #3e3e3e;
+    color: #8e8e8e;
+    cursor: not-allowed;
+    transform: none;
+    }
+    /* สำหรับหน้า index.html */
+    #message {
+    margin-top: 20px;
+    color: #cf6679;
+    font-size: 15px;
+    display: none;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(207, 102, 121, 0.1);
+    }
+    #success-message {
+    margin-top: 20px;
+    color: #03dac6;
+    font-size: 15px;
+    display: none;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(3, 218, 198, 0.1);
+    }
+    .attempts {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #b0b0b0;
+    }
+    /* สำหรับหน้า login.html */
+    #error-message {
+    margin-top: 20px;
+    color: #cf6679;
+    font-size: 15px;
+    display: none;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(207, 102, 121, 0.1);
+    }
+    .validation-message {
+    color: #cf6679;
+    font-size: 12px;
+    text-align: left;
+    margin-top: 5px;
+    display: none;
+    }
+    h4 {
+    color: #b0b0b0;
+    font-weight: 400;
+    margin-bottom: 20px;
+    }
+
+    .saved-answers {
+        margin-top: 30px;
+        border-top: 1px solid #333;
+        padding-top: 20px;
+        text-align: left;
+    }
+    
+    .saved-answers h3 {
+        color: #bb86fc;
+        font-size: 18px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .saved-answers ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: #2a2a2a;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    
+    .saved-answers li {
+        padding: 8px;
+        border-bottom: 1px solid #333;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .saved-answers li:last-child {
+        border-bottom: none;
+    }
+    
+    /* ปรับขนาด container ให้ใหญ่ขึ้น */
+    .login-container {
+        width: 400px;
+    }
+
+    /* เพิ่มเติมสำหรับ styles.css */
+
+/* สไตล์สำหรับส่วนแอดมิน */
+.admin-panel {
+    margin-top: 30px;
+    border-top: 1px solid #333;
+    padding-top: 20px;
+    text-align: left;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.admin-header h3 {
+    color: #bb86fc;
+    font-size: 18px;
+    margin: 0;
+}
+
+.logout-button {
+    background-color: #cf6679;
+    color: #121212;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background-color: #b55a6a;
+}
+
+.answers-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.answers-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.answer-item {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    position: relative;
+}
+
+.answer-date {
+    font-size: 12px;
+    color: #8e8e8e;
+    margin-top: 5px;
+}
+
+.delete-button {
+    background-color: #cf6679;
+    color: #121212;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.delete-button:hover {
+    background-color: #b55a6a;
+}
+
+/* ลิงก์แอดมิน */
+.admin-link {
+    margin-top: 20px;
+    font-size: 12px;
+}
+
+.admin-link a {
+    color: #8e8e8e;
+    text-decoration: none;
+}
+
+.admin-link a:hover {
+    color: #bb86fc;
+    text-decoration: underline;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    margin: 15% auto;
+    padding: 25px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.close {
+    color: #8e8e8e;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+
+.close:hover,
+.close:focus {
+    color: #bb86fc;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal h2 {
+    color: #bb86fc;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    color: #cf6679;
+    font-size: 14px;
+    margin-top: 10px;
+    display: none; /* จะแสดงเมื่อมีข้อผิดพลาด */
+}
+
+#admin-error {
+    display: block; /* แสดงตลอด แต่จะมีเนื้อหาเมื่อมีข้อผิดพลาด */
+}
+
+/* ปรับขนาด container ให้ใหญ่ขึ้น */
+.login-container {
+    width: 450px;
+}
